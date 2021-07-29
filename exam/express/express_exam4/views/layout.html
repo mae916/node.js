@@ -8,12 +8,12 @@
 		<link rel="stylesheet" type="text/css" href="/css/{{ css }}.css">
 		{% endfor %}
 		{% endif %}
-		{% block css %}
+		{% block style %}
 		{% endblock %}
 		<script src="/js/common.js"></script>
 		{% if addScript.length > 0 %}
 		{% for js in addScript %}
-		<script src="/js/{{ js }}.js"></script>
+		<script src='/js/{{ js }}.js'></script>
 		{% endfor %}
 		{% endif %}
 		{% block script %}
@@ -43,6 +43,5 @@
 		{% include 'outline/footer/main.html' %}
 		</footer>
 		{% endblock %}
-
 	</body>
 </html>
