@@ -1,0 +1,2 @@
+npm i express dotenv morgan pm2 cross-env nunjucks cookie-parser express-session bcrypt winston
+npm i -D nodemon

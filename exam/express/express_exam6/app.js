@@ -1,4 +1,4 @@
-const express = require('express');  
+const express = require('express');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const nunjucks = require('nunjucks');
@@ -7,22 +7,23 @@ const logger = require('./lib/logger');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
+const bootStrap = require('./boot');
 
 /** multer 설정  */
 const upload = multer({
-		storage : multer.diskStorage({  // 현재 서버 로컬 폴더에 저장 설정 
-			destination : function(req, file, done) { // 업로드될 디렉토리 경로 
+		storage : multer.diskStorage({  // 현재 서버 로컬 폴더에 저장 설정
+			destination : function(req, file, done) { // 업로드될 디렉토리 경로
 				done(null, path.join(__dirname, 'public/upload'));
 			},
 			filename : function (req, file, done) {
-				/** 
-				 동일 명칭 파일 중복 방지 처리 
+				/**
+				 동일 명칭 파일 중복 방지 처리
 				 파일명 + timestamp(Date.now()) + 확장자
 				 file - 임시로 업로드된 파일 정보
 					 .originalname - 업로드된 파일 명칭
-					 
+
 				path
-					.basename -> 파일이름 
+					.basename -> 파일이름
 								-> 2번째 인수로 파일의 확장자를 명시 -> 확장자 없는 파일 이름
 								path.basename("파일명", "확장자");
 					.extname -> 파일의 확장자
@@ -33,7 +34,7 @@ const upload = multer({
 				done(null, newFileName);
 			}
 		}),
-		limits : { fileSize : 5 * 1024 * 1024 }, // 최대 업로드 용량 5mb 
+		limits : { fileSize : 5 * 1024 * 1024 }, // 최대 업로드 용량 5mb
 });
 
 /** 라우터 */
@@ -45,7 +46,7 @@ const memberRouter = require('./routes/member'); /** /member */
 
 const app = express();
 
-dotenv.config(); // .env -> process.env 하위 속성 추가 
+dotenv.config(); // .env -> process.env 하위 속성 추가
 
 app.set("view engine", "html");
 nunjucks.configure(path.join(__dirname, 'views'), {
@@ -64,12 +65,14 @@ app.use(session({
 	name : "sessid",
 }));
 
+app.use(bootStrap); // 사이트 초기화 미들웨어
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended : false }));
 
 /** 라우터 등록 */
-//app.use(indexRouter); 
+//app.use(indexRouter);
 app.use("/file", fileRouter); // /file/upload, /file/upload2, /file/upload3 ..
 app.use("/cookie", cookieRouter); /** /cookie */
 app.use("/session", sessionRouter); /** /session ... */
@@ -80,14 +83,14 @@ app.get("/", (req, res) => {
 	return res.render("main/index");
 });
 
-/**	
+/**
 	upload - multer 인스턴스(객체)
 	upload.single("file태그의 name 속성값"); - 파일1개, req.file - 업로드된 파일 데이터
 	upload.array("file태그의 name 속성값"); - 파일 여러개, req.files - 업로드된 파일 데이터
 	upload.fields([
 		{ name : 'name 속성값' },
 		{ name : 'name 속성값' },
-		... 
+		...
 		{ name : 'name 속성값' }
 	]) - req.files - 업로드된 파일 데이터
 */
@@ -98,7 +101,7 @@ app.post("/upload", upload.single("image"), (req, res) => {
 });
 
 app.post("/upload2", upload.array("images"), (req, res) => {
-	console.log(req.files); // 여러개인 경우 req.files 
+	console.log(req.files); // 여러개인 경우 req.files
 	return res.send("");
 });
 
@@ -121,15 +124,15 @@ app.use((err, req, res, next) => {
 		status : err.status || 500,
 		stack : err.stack,
 	};
-	
+
 	/** 로그 기록 */
 	logger(`[${data.status}]${data.message}`, 'error');
 	logger(data.stack, 'error');
-	
-	if (process.env.NODE_ENV === 'production') { // 서비스 중 
+
+	if (process.env.NODE_ENV === 'production') { // 서비스 중
 		delete data.stack;
 	}
-	
+
 	return res.status(err.status || 500).render("error", data);
 });
 
