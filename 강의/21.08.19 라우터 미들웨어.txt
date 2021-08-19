@@ -1,0 +1,66 @@
+app.get("경로", 미들웨어1, 미들웨어2, 미들웨어3....)
+
+미들웨어 사이 사이에 next를 넣어줘야 넘어가는데,
+보통 유효성 검사할때, 로그인 실패하면 실패 화면을 띄워주고 출력해준다 이때는 넘어가면 안되니까 next를 쓰지않고, 
+로그인이 되면 다음화면으로 넘어가야하니까 next를 써준다. 
+
+라우터에는 url을 써주고 같은 url이면 안에 미들웨어를 여러개 써줘도 된다
+BUT url이 다른 라우터는 따로 라우터를 줘야함.
+
+메소드와url이 같은 라우터끼리 매칭이 되기때문에,
+메소드와url이 다른 라우터에 next를 주면 넘어가지 않는다.
+
+
+미들웨어 함수
+
+function(req, res, next) {
+
+}
+
+req - request 객체
+res - response 객체
+next 함수(다음 미들웨어로 이동하는 함수)
+
+메소드
+app
+    .get()
+    .post()
+    .delete()
+    .put()
+    .patch()
+        
+
+app.use() -> 모든 메소드를 통합해서 관리
+    (get, post, delete, put, patch... 모든 메소드에 매칭되는 /test)
+
+app.use("/test", (req,rex,next) {
+
+    app.use((req,rex,next) => {
+        //공통 미들웨어
+    }
+
+}); --> 모든 메서드 + 모든 요청 URL  -> 어떤 url을 입력하고 접근해도 여기로 제일 먼저 유입이 됨. 그래서 보통 가장 상단에 있음 공통적으로 처리 할 것들.
+
+app.use(morgan('dev'));
+app.use(cookieParser());
+app.use(session());
+
+app.use("/member", 라우터)
+//라우터 - 모든 메서드, /member 하에서만 공통 미들웨어
+
+next를하든, return re.send등으로 출력을하든 둘중하나는 꼭해야함
+
+다 매칭이 안될때 보여줄 수 있게 하단에 없는 페이지 처리 라우터, 오류처리 미들웨어 라우터(use) 만들어줘야함.
+
+
+app.set('PORT', process.env.PORT || 3000);
+
+->
+
+app.get("키") -> app.set으로 설정된 값을 가져오는 메서드
+app.set("키","값"); -> app 전체에 공유 되는 변수를 지정하는 메서드
+
+process.env -> 설정과 관련된 속성(환경변수) -> 설정하는 두가지 방법
+
+    - 1) .env -> dotenv.config();
+    - 2) cross-env PORT=123
