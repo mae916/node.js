@@ -65,7 +65,13 @@ const board = {
 				type : QueryTypes.SELECT,
 			});
 			
-			return rows[0];
+			const data = rows[0];
+			if(data) {
+				data.category = data.category?data.category.split("||"):[];
+				data.categoryOrg = data.category.join("\r\n"); // \r\n -> enter키 커서가 줄개행후 맨앞으로감
+			}
+			return data;
+
 		} catch (err) {
 			logger(err.message, 'error');
 			logger(err.stack, 'error');
@@ -83,7 +89,7 @@ const board = {
 			const replacements = {
 				boardNm : data.boardNm,
 				category : data.category?data.category.replace(/\r\n/g, "||"):"",
-				listPerPage : data.listPerPage || 15,
+				listPerPage : data.listPerPage || 15, // 기본값 설정 중요!
 				useReply : data.useReply || 0,
 				useComment : data.useComment || 0,
 				commentLevel : data.commentLevel || 'all',
