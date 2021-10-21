@@ -1,5 +1,6 @@
 const { sequelize, Sequelize : { QueryTypes } } = require("./index");
 const logger = require("../lib/logger");
+const path = require('path');
 
 /**
 * 게시판 model 
@@ -66,12 +67,19 @@ const board = {
 			});
 			
 			const data = rows[0];
-			if(data) {
+			if (data) {
 				data.category = data.category?data.category.split("||"):[];
-				data.categoryOrg = data.category.join("\r\n"); // \r\n -> enter키 커서가 줄개행후 맨앞으로감
+				data.categoryOrg = data.category.join("\r\n");
 			}
+			
+			data.skin = data.skin || "default";
+			
+			const skinPath = path.join(__dirname, "..", "views/board/skins/", data.skin);
+			data.listSkinPath = skinPath + "/_list.html";
+			data.viewSkinPath = skinPath + "/_view.html";
+			data.formSkinPath = skinPath + "/_form.html";
+		
 			return data;
-
 		} catch (err) {
 			logger(err.message, 'error');
 			logger(err.stack, 'error');
@@ -89,7 +97,7 @@ const board = {
 			const replacements = {
 				boardNm : data.boardNm,
 				category : data.category?data.category.replace(/\r\n/g, "||"):"",
-				listPerPage : data.listPerPage || 15, // 기본값 설정 중요!
+				listPerPage : data.listPerPage || 15,
 				useReply : data.useReply || 0,
 				useComment : data.useComment || 0,
 				commentLevel : data.commentLevel || 'all',

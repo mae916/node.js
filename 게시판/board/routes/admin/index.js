@@ -61,13 +61,12 @@ router.route("/board/:boardId")
 		const boardId = req.params.boardId;
 		const result = await board.saveConfig(boardId, req.body);
 		
-		if (!result) { //저장 실패 -> 메세지 출력
-			return alert(" 설정 저장에 실패하였습니다.", res);
+		if (!result) { // 저장 실패 -> 메세지 출력 
+			return alert("설정 저장에 실패하였습니다.", res);
 		}
-
-		// 성공 -> 새로고침
+		
+		// 성공 -> 새로고침 
 		return reload(res, "parent");
-
 	});
 	
 
