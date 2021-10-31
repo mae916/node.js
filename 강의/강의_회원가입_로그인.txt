@@ -1,0 +1,33 @@
+1. npm init -> package.json
+	-> 사용자 정의 명령어
+		1) 개발중 실행 명령어 - nodemon 
+		2) 서비스중 실행 명령어 - pm2 
+		
+2. 필요한 패키지(모듈) 설치 
+	npm i express morgan dotenv nunjucks winston pm2 cross-env cookie-parser express-session bcrypt 
+	
+	npm i -D nodemon
+
+3. app.js 파일 생성 
+
+4. app.js 기본 설정 
+	1) 필요한 모듈(패키지) require
+	2) listen 부분 구현
+	3) 없는 페이지 라우터, 오류 처리 라우터
+	4) 미들웨어 등록, 설정
+	
+5. 라우터 구성
+	/member  - routes/member.js 
+	/member/join - 회원 가입
+		- get  - 회원가입 양식 출력 
+		- post - 회원 가입 처리 
+		
+	/member/login - 로그인 
+		- get - 로그인 양식 출력
+		- post - 로그인 처리 
+		
+	/member/logout - 로그아웃 
+	
+	
+	
+	/ - 메인페이지  - routes/index.js 
