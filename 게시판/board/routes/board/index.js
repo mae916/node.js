@@ -1,5 +1,8 @@
 const router = require('express').Router();
 const board = require('../../models/board');
+const {uid, alert, go} = require("../../lib/common");
+const uploadFile = require("../../models/uploadFile");
+const { writeValidator } = required("")
 
 /**
 * 게시판 라우터 
@@ -31,9 +34,27 @@ router.route("/write/:id")
 			};
 			return res.render("board/form", data);
 		})
-		.post((req, res) => { // 게시글 등록 처리 
-			
+		.post(writeValidator, async(req, res) => { // 게시글 등록 처리 
+			const boardId = req.params.id;
+			req.body.boardId = boardId;
+			const idx = await board.write(req.body, req);
+			//성공 -> 게시글 보기, 실패 -> 메세지 출력
+			if (!idx) { //게시글 작성 실패
+				return alert("게시글 작성 실패하였습니다!", res);
+			}
+
+			//게시글 작성 성공 -> 게시글 보기
+			return go("/board/view/" + idx, res, "parent");
 		});
 
+/**게시글 보기 */
+router.get("/view/:idx",(req,res) => {
+	const idx = req.params.idx;
+	const data = await board.get(idx);
+	if (!data) {
+		return alert("게시글이 없습니다.", res, -1); //-1은 뒤로가기
+	}
+	return res.render("board/view", data);
+});
 
 module.exports = router;

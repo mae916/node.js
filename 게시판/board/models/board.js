@@ -1,6 +1,9 @@
 const { sequelize, Sequelize : { QueryTypes } } = require("./index");
 const logger = require("../lib/logger");
 const path = require('path');
+const { get } = require("./uploadFile");
+const bcypt = require('bcrypt');
+
 
 /**
 * 게시판 model 
@@ -137,6 +140,62 @@ const board = {
 		} catch(err) {
 			logger(err.message, 'error');
 			logger(err.stack, 'error');
+			return false;
+		}
+	},
+	/**
+	 * 게시글 등록
+	 */
+	write(data, req) {
+		const sql = `INSERT INTO boardData (boardId, memNo, gid, category, poster, subject,content, password) VALUES (:boardId, :memNo, :id, :category, :poster, :subject, :content, :password)`;
+
+		const password = data.password? await bcrypt.hash(password, 10):"";
+
+		const replacements = {
+			boardId : data.boardId,
+			memNo : req.member?req.member.memNo:0,
+			gid : data.gid,
+			category : data.category,
+			poster : data.poster,
+			subject : data.subject,
+			content : data.content,
+			password,
+		};
+	try {
+	const result = await sequalize.query(sql, {
+		replacements,
+		type : QueryTypes.INSERT,
+	});
+
+	return result[0]; //게시글 번호
+	} catch(err) {
+		logger(err.message,'error');
+		logger(err.stack,'error');
+		return false;
+	}
+},
+	/**
+	 * 게시글 조회
+	 */
+	async get(idx) {
+		try {
+			const sql = `SELECT a.*,b.bmemId, b.memNm FROM boardData a LEST JOIN member b ON a.memNo = b.memNo WHERE idx = ?`;
+			const rows = await sequalize.query(sql, {
+				replacements : [idx],
+				type : QueryTypes.SELECT,
+			});
+			if (rows.length == 0) { //조회된 게시글이 없는 경우
+				throw new Error("게시글 없음");
+			}
+
+			const data = rows[0];
+			data.boardConf = await this.getBoard(data.boardId);
+			data.postDate = dateFormat(data.reDt, "%Y-%m-%d %H:%i:%s");
+
+			return data;
+		} catch (err) {
+			logger(err.message,'error');
+			logger(err.stack,'error');
 			return false;
 		}
 	}
