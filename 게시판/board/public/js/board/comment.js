@@ -6,6 +6,10 @@
 $(function() {
 	/** 댓글 삭제 처리 */
 	$(".delete_comment").click(function() {
+		if (!confirm('정말 삭제하시겠습니까?')) {
+			return;
+		}
+		
 		const idx = $(this).closest("li").data("idx");
 		if (!idx)
 			return;
@@ -15,9 +19,16 @@ $(function() {
 			method : "DELETE",
 			dataType : "json",
 			success : function (res) {
-				alert(res.message);
-				if (res.success) { // 페이지 새로고침
-					location.reload();
+				// 비회원 댓글인 경우, 미인증 되었을때는 비밀번호 확인 팝업
+				if (!res.isSuccess && res.memberType == 'guest') {  
+					const url = "/board/check_password?mode=delete_comment&idx="+idx;
+					layer.popup(url, 320, 320);
+				} else {
+					alert(res.message);
+					if (res.success) { // 페이지 새로고침
+						layer.close();
+						location.reload();
+					}
 				}
 			},
 			error : function (err) {
@@ -59,8 +70,35 @@ $(function() {
 			});
 			
 		} else { // 수정 양식이 아직 로드가 안되어 있으므로 수정 양식 로드 
-			loadUpdateForm($target, idx);
-			
+			$.ajax({
+				url : "../comment/" + idx,
+				method : "PATCH",
+				dataType : "json",
+				data : { mode : "get_form" },
+				success : function (res) {
+					if (res.memberType && !res.success) { // 권한 체크 실패
+						if (res.memberType == 'guest') { // 비밀번호 확인 팝업
+							const url = "/board/check_password?mode=update_comment&idx="+idx;
+							layer.popup(url, 320, 320);
+						} else {
+							alert(res.message);
+						}
+						return;
+					}
+					
+					if (res.success) {
+						layer.close();
+						if ($("#update_content_" + idx).length == 0) {
+							$target.find(".inner").addClass("dn");
+							const html = `<textarea class='update_content' id='update_content_${idx}'>${res.data.content}</textarea>`;
+							$target.append(html);
+						}
+					}
+				},
+				error : function (err) {
+					console.error(err);
+				}
+			});
 		}
 	});
 	
@@ -81,50 +119,22 @@ $(function() {
 	}
 });
 
-function loadUpdateForm(target, idx) {
-	$target = target;
-	$.ajax({
-		url : "../comment/" + idx,
-		method : "PATCH",
-		dataType : "json",
-		data : { mode : "get_form" },
-		success : function (res) {
-			if (res.memberType && !res.success) { // 권한 체크 실패
-				if (res.memberType == 'guest') { // 비밀번호 확인 팝업
-					const url = "/board/check_password?mode=update_comment&idx="+idx;
-					layer.popup(url, 320, 320);
-				} else {
-					alert(res.message);
-				}
-				return;
-			}
-					
-			if (res.success) {
-				if ($("#update_content_" + idx).length == 0) {
-					$target.find(".inner").addClass("dn");
-					const html = `<textarea class='update_content' id='update_content_${idx}'>${res.data.content}</textarea>`;
-					$target.append(html);
-				}
-			}
-		},
-		error : function (err) {
-			console.error(err);
-		}
-	});
-}
-
 // 비회원 비밀번호 검증 성공 콜백 */
-function callbackGuestPassword(data) {
-	const mode = data.mode;
-	const idx = data.idx;
+function callbackGuestPassword(mode, idx) {
+	if (mode.indexOf("board") != -1) {
+		if (typeof callbackGuestBoardPassword == 'function') {
+			callbackGuestBoardPassword(mode, idx);
+		}
+		return;
+	}
+	
 	$comment = $("#comment_" + idx);
 	switch(mode) {
 		case "update_comment" : 
-			$target = $comment.closest("li").find(".comment");
-			loadUpdateForm($target, idx);
+			$comment.find(".update_comment").click();
 			break;
 		case "delete_comment" : 
-		
+			$comment.find(".delete_comment").click();
 			break;
 	}
 }

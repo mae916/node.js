@@ -1,6 +1,7 @@
 <!--- Default 댓글 스킨 -->
 <div class="default_skin_comment">
 	<div class="comment_form">
+		{ % if }
 		<form method="post" action="../comment/{{ idx }}" target="ifrmHidden" autocomplete="off">
 			<div class="top">
 				<input type="text" name="poster" value="{{ member.memNm if isLogin }}"> 
@@ -32,10 +33,12 @@
 				<div class='inner'>{{ item.contentHtml | safe }}</div>
 				
 			</div>
+			{% if item.memNo == 0 or (isLogin and item.memNo == member.memNo) %}
 			<div class='controls'>
 				<span class='btn1 update_comment'>수정</span>
 				<span class='btn1 delete_comment'>삭제</span>
 			</div>
+			{% endif %}
 		</li>
 	{% endfor %}
 	</ul>

@@ -82,7 +82,7 @@ router.get("/view/:idx", async (req, res) => {
 		return alert("게시글이 없습니다.", res, -1);
 	}
 	
-	data.addScript = ["board/comment"];
+	data.addScript = ["board/comment", "board/board"];
 	
 	return res.render("board/view", data);
 });
@@ -92,7 +92,7 @@ router.get("/view/:idx", async (req, res) => {
 router.get("/delete/:idx", async (req, res) => {
 	try {
 		const idx = req.params.idx;
-		const boardConf = await board.delete(idx);
+		const boardConf = await board.delete(idx, req);
 		if (!boardConf) {
 			throw new Error("삭제 실패하였습니다.");
 		}
@@ -111,9 +111,21 @@ router.route("/update/:idx")
 		try {
 			const idx = req.params.idx;
 			const data = await board.get(idx);
+			
 			if (!data) {
 				throw new Error('게시글이 없습니다.');
 			}
+			
+			// 비회원 게시글인 경우는 비밀번호 확인 검증이 되었는지 체크 */
+			if (!data.memNo && !req.session[`guestboard${idx}`]) {
+				throw new Error('수정 권한이 없습니다.');
+			}
+			
+			// 회원 게시글인 경우는 본인이 작성한 게시글인지 체크 
+			if (data.memNo && (!req.isLogin || req.member.memNo != data.memNo)) {
+				throw new Error('수정 권한이 없습니다.');
+			}
+			
 			
 			data.addScript = ["ckeditor/ckeditor", "board/form"];
 			data.mode = "update";
@@ -206,29 +218,36 @@ router.route("/check_password")
 		return res.render("board/password", { mode, idx });
 	})
 	.post(async (req, res) => { // 비밀번호 체크 처리 
-		try {
-			const mode = req.body.mode;
-			const idx = req.body.idx;
-			if (!mode || !idx) {
-				throw new Error("잘못된 접근입니다.");
-			}
-			let type = "board";
-			if (mode.indexOf("comment") != -1) { // 댓글 수정, 삭제 
-				type = "comment";
-			} 
-			
-			const result = await board.checkPassword(idx, type, req);
-			// 검증 실패 
-			if (!result) {
-				throw new Error("비밀번호 확인에 실패하였습니다.");
-			}
-
-			// 검증 성공 
-			const data = JSON.stringify({ mode, idx });
-			return res.send(`<script>parent.callbackGuestPassword(${data});</script>`);
-		} catch (err) {
-			return alert(err.message, res);
+		const mode = req.body.mode;
+		const idx = req.body.idx;
+		if (!mode || !idx) {
+			return alert("잘못된 접근입니다.", res);
 		}
+		let type = "board";
+		if (mode.indexOf("comment") != -1) { // 댓글 수정, 삭제 
+			type = "comment";
+		} 
+		
+		const result = await board.checkPassword(idx, type, req);
+		
+		if (result) {
+			let key = "";
+			if (type == 'comment') { // 댓글 
+				key = "guestcomment" + idx;
+			} else { // 게시판 
+				key = "guestboard" + idx;
+			}
+			
+			if (key) { // 비회원 비밀번호 인증 성공시 세션에 true
+				req.session[key] = true;
+			}
+			
+		} else { // 검증 실패 
+			return alert("비밀번호 확인에 실패하였습니다.", res);
+		}
+		// 검증 성공 
+		const script = `<script>parent.callbackGuestPassword('${mode}', '${idx}')</script>`;
+		return res.send(script);
 	});
 
 module.exports = router;
