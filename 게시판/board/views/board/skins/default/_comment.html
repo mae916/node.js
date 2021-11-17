@@ -1,6 +1,7 @@
 <!--- Default 댓글 스킨 -->
 <div class="default_skin_comment">
 	<div class="comment_form">
+<<<<<<< HEAD
 		{% if not isLogin and boardConf.commentLevel == 'member' %}
 			<div class='notice'>@로그인 후 댓글 작성이 가능합니다.</div>
 		{% else %}
@@ -19,6 +20,21 @@
 			</form>
 			{% endif %}
 		{% endif %}
+=======
+		{ % if }
+		<form method="post" action="../comment/{{ idx }}" target="ifrmHidden" autocomplete="off">
+			<div class="top">
+				<input type="text" name="poster" value="{{ member.memNm if isLogin }}"> 
+				{% if not isLogin %} 
+				/ 비밀번호 : <input type="password" name="password">
+				{% endif %}
+			</div>
+			<div class="form">
+				<textarea name="content" class="content" placeholder="댓글을 입력하세요."></textarea>
+				<input type="submit" value="댓글작성">
+			</div>
+		</form>
+>>>>>>> 96ae3a0926761cc92bcf8d8ba82d2884359ee4e9
 	</div>
 	<!--// comment_form -->
 	{% if comments.length > 0 %}
