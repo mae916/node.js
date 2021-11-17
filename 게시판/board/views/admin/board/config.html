@@ -107,7 +107,7 @@
 						<label for="writeLevel_all">전체(비회원+회원+관리자)</label>
 						
 						<input type="radio" name="writeLevel" value="member" id="writeLevel_member"
-							{{ ' checked' if writeLevel == 'all' }}
+							{{ ' checked' if writeLevel == 'member' }}
 						>
 						<label for="writeLevel_member">회원(회원+관리자)</label>
 						
@@ -122,7 +122,11 @@
 			<th>게시판스킨</th>
 			<td>
 				<select name="skin">
-					<option value="default">default</option>
+					{% if skins.length > 0 %}
+					{% for skin in skins %}
+						<option value="{{ skin }}">{{ skin }}</option>
+					{% endfor %}
+					{% endif %}
 				</select>
 			</td>
 		</tr>

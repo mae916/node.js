@@ -3,8 +3,9 @@ const uploadFile = require('./uploadFIle');
 const logger = require("../lib/logger");
 const path = require('path');
 const bcrypt = require('bcrypt');
-const { dateFormat } = require("../lib/common");
+const { dateFormat, getBrowserId } = require("../lib/common");
 const pagination = require('pagination');
+const fs = require('fs').promises;
 
 /**
 * 게시판 model 
@@ -83,6 +84,10 @@ const board = {
 			data.viewSkinPath = skinPath + "/_view.html";
 			data.formSkinPath = skinPath + "/_form.html";
 			data.commentSkinPath = skinPath + "/_comment.html";
+			
+			/** 스킨 목록 조회 */
+			const skinDir = path.join(__dirname, "..", "views/board/skins/");
+			data.skins = await fs.readdir(skinDir);
 			
 			return data;
 		} catch (err) {
@@ -362,10 +367,22 @@ const board = {
 	* 게시글 삭제 
 	*
 	*/
-	async delete(idx) {
+	async delete(idx, req) {
 		const data = await this.get(idx);
 		if (!data) {
 			throw new Error('게시글이 없습니다.');
+		}
+		
+		if (req) {
+			// 비회원 게시글인 경우는 비밀번호 확인 검증이 되었는지 체크 */
+			if (!data.memNo && !req.session[`guestboard${idx}`]) {
+				throw new Error('삭제 권한이 없습니다.');
+			}
+			
+			// 회원 게시글인 경우는 본인이 작성한 게시글인지 체크 
+			if (data.memNo && (!req.isLogin || req.member.memNo != data.memNo)) {
+				throw new Error('삭제 권한이 없습니다.');
+			}
 		}
 		
 		/**
@@ -556,17 +573,13 @@ const board = {
 			let key;
 			if (type == 'comment') { // 댓글 
 				data = await this.getComment(idx);
-				key = "guest_comment_" + idx;
 			} else { // 게시판
 				data = await this.get(idx);
-				key = "guest_board_" + idx;
 			}
 			let hash = data?data.password:"";
 			if (hash) {
 				const match = await bcrypt.compare(req.body.password, hash)
 				if (match) { // 비회원 비밀번호가 일치하는 경우 -> 세션 처리 
-					req.session[key] = true;
-					
 					return true;
 				}
 			}
@@ -576,6 +589,68 @@ const board = {
 			logger(err.message, 'error');
 			logger(err.stack, 'error');
 			return false;
+		}
+	},
+	/**
+	* 게시판 접근 권한 체크
+	*
+	* @param mode   목록 - list, 쓰기 - write, 보기 - view 
+	* @param 게시판 아이디 
+	*/
+	async checkAccessAuth(mode, boardId, req) {
+		const conf = await this.getBoard(boardId);
+		if (!conf || !mode || !boardId || !req) {
+			return false;
+		}
+		
+		if (['list', 'write', 'view'].indexOf(mode) == -1) { // 권한을 체크하는 형태 list, view, write 
+			return false;
+		}
+		
+		const levelCheck = conf[mode + "Level"]; // all, member, admin 
+		if (levelCheck == 'all' || (req.isLogin && levelCheck == 'member')) {
+			return true;
+		} else if (req.isLogin && levelCheck == 'admin' && req.member.isAdmin) {
+			return true;
+		}
+			
+		return false;
+	},
+	/**
+	* 게시글 보기 조회수 반영 
+	*
+	* @param idx 게시글 번호 
+	* @param req 
+	*/
+	async updateViewCount(idx, req) {
+		if (!idx || !req)
+			return;
+		
+		try {
+			const browserId = getBrowserId(req);
+			const sql = "INSERT INTO boardViewCount VALUES (?, ?)";
+			await sequelize.query(sql, {
+				replacements : [browserId, idx],
+				type : QueryTypes.INSERT,
+			});
+		
+		} catch (err) { // 이미 본 게시글인 경우 browserId + idx 추가시 오류 발생 
+			
+		}
+		
+		/** 현재 게시글 조회수 총합 -> 게시글에 업데이트 */
+		try {
+			const sql = `UPDATE boarddata a 
+								SET 
+									viewCount = (SELECT COUNT(*) FROM boardViewCount b WHERE a.idx = b.idx)
+							WHERE a.idx = ?`;
+			await sequelize.query(sql, {
+					replacements : [idx],
+					type : QueryTypes.UPDATE,
+			});
+		} catch (err) {
+			logger(err.message, 'error');
+			logger(err.stack, 'error');
 		}
 	}
 };
