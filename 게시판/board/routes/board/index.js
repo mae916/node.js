@@ -94,7 +94,6 @@ router.get("/view/:idx", async (req, res) => {
 		return alert("게시글이 없습니다.", res, -1);
 	}
 	
-<<<<<<< HEAD
 	/** 게시글 조회수 증가 처리 */
 	await board.updateViewCount(idx, req);
 	
@@ -105,8 +104,6 @@ router.get("/view/:idx", async (req, res) => {
 	
 	// 게시판 설정 
 	data.boardConf = await board.getBoard(data.boardId);
-=======
->>>>>>> 96ae3a0926761cc92bcf8d8ba82d2884359ee4e9
 	data.addScript = ["board/comment", "board/board"];
 	
 	return res.render("board/view", data);
